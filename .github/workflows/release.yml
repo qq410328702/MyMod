@@ -1,0 +1,89 @@
+name: Release
+
+# ──────────────────────────────────────────────────────────────
+#  打 tag (v*) 时自动构建并发布 GitHub Release
+#  使用方式：
+#    git tag v0.1.0
+#    git push origin v0.1.0
+#  之后会在 Releases 页面自动出现 v0.1.0 版本，附带 zip 文件
+# ──────────────────────────────────────────────────────────────
+
+on:
+  push:
+    tags:
+      - 'v*'             # 任何 v 开头的 tag，比如 v0.1.0、v1.0.0
+  workflow_dispatch:     # 也支持手动触发
+
+permissions:
+  contents: write        # 创建 Release 需要这个权限
+
+jobs:
+  release:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0   # 拿全部历史，方便生成 changelog
+
+      - name: Setup MSVC (x86)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+
+      - name: Configure CMake
+        run: cmake -G "Visual Studio 17 2022" -A Win32 -B build .
+
+      - name: Build Release
+        run: cmake --build build --config Release --parallel
+
+      # ─── 整理发布包 ──────────────────────────────────────
+      - name: Stage release files
+        shell: cmd
+        run: |
+          mkdir release\MyMod
+          copy build\Release\MyMod.dll          release\MyMod\
+          copy build\Release\MyMod_launcher.exe release\MyMod\
+          copy MyMod.ini                        release\MyMod\
+          copy README.md                        release\MyMod\
+          copy QUICKSTART.md                    release\MyMod\
+          copy LICENSE                          release\MyMod\
+          dir release\MyMod\
+
+      # ─── 打 zip ──────────────────────────────────────────
+      - name: Create zip
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $zipName = "MyMod-$tag-Win32.zip"
+          Compress-Archive -Path release\MyMod -DestinationPath $zipName
+          echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
+          dir $zipName
+
+      # ─── 生成 changelog（自动从 git log 抓） ────────────
+      - name: Generate changelog
+        id: changelog
+        shell: pwsh
+        run: |
+          $prevTag = git describe --tags --abbrev=0 HEAD^ 2>$null
+          if ($LASTEXITCODE -eq 0 -and $prevTag) {
+              Write-Host "Previous tag: $prevTag"
+              $log = git log --pretty=format:"- %s (%h)" "$prevTag..HEAD"
+          } else {
+              Write-Host "First release - including all commits"
+              $log = git log --pretty=format:"- %s (%h)"
+          }
+          $log | Out-File -FilePath changelog.md -Encoding utf8
+          Get-Content changelog.md
+
+      # ─── 创建 GitHub Release ─────────────────────────────
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: MyMod ${{ github.ref_name }}
+          body_path: changelog.md
+          files: ${{ env.ZIP_NAME }}
+          draft: false
+          prerelease: false

@@ -1,5 +1,9 @@
 # MyMod —— 一个最小可用的 H3/HotA 插件示例
 
+[![Build](https://github.com/qq410328702/MyMod/actions/workflows/build.yml/badge.svg)](https://github.com/qq410328702/MyMod/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform: Win32](https://img.shields.io/badge/platform-Win32-blue.svg)]()
+
 > 这是一个完整能编译、能跑起来的 H3 / HotA 插件起手模板。
 > 包含 3 个由浅到深的 hook 示例，从"证明注入成功"到"修改游戏逻辑"。
 

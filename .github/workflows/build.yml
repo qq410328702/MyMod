@@ -1,0 +1,71 @@
+name: Build
+
+# ──────────────────────────────────────────────────────────────
+#  每次 push / PR 都跑：用 VS 2022 + Win32 编译 MyMod
+#  目的：及时发现编译错误，让仓库保持"绿"
+# ──────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      # 只在影响构建的文件改动时跑（README 等纯文档不触发）
+      - 'src/**'
+      - 'third_party/**'
+      - 'CMakeLists.txt'
+      - 'build.bat'
+      - 'generate_sln.bat'
+      - '.github/workflows/build.yml'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:   # 允许手动触发（仓库 Actions 页面点按钮）
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        config: [Release, Debug]
+      fail-fast: false   # 一个挂不影响另一个继续跑
+
+    steps:
+      # ─── 1. Checkout 代码（含 H3API submodule） ──────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive   # 关键：必须拉取 H3API
+
+      # ─── 2. 设置 MSVC 环境（Win32） ───────────────────────
+      - name: Setup MSVC (x86)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86               # 32 位，因为 H3 是 32 位
+
+      # ─── 3. CMake 配置 ────────────────────────────────────
+      - name: Configure CMake (Win32)
+        run: cmake -G "Visual Studio 17 2022" -A Win32 -B build .
+
+      # ─── 4. 编译 ──────────────────────────────────────────
+      - name: Build ${{ matrix.config }}
+        run: cmake --build build --config ${{ matrix.config }} --parallel
+
+      # ─── 5. 验证产物存在 ──────────────────────────────────
+      - name: Verify outputs
+        shell: cmd
+        run: |
+          if not exist build\${{ matrix.config }}\MyMod.dll exit /b 1
+          if not exist build\${{ matrix.config }}\MyMod_launcher.exe exit /b 1
+          dir build\${{ matrix.config }}\
+
+      # ─── 6. 上传产物（构建产物可在 Actions 页面下载） ────
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyMod-${{ matrix.config }}-Win32
+          path: |
+            build/${{ matrix.config }}/MyMod.dll
+            build/${{ matrix.config }}/MyMod_launcher.exe
+            MyMod.ini
+            README.md
+            QUICKSTART.md
+          retention-days: 30
