@@ -352,6 +352,10 @@ void Install_CreatureColor()
 // ═══════════════════════════════════════════════════════════
 void DumpCreatureArrayDelayed()
 {
+    static bool already = false;
+    if (already) return;
+    already = true;
+
     LOG_INFO("─── Delayed creature dump (game running) ───");
 
     // 重新读取 0x6747B0 指针（HotA 在游戏运行时把它指向真实数据）
@@ -367,7 +371,29 @@ void DumpCreatureArrayDelayed()
     // 用裸偏移读字段（绕开 H3API 的字段名，因为它们对不上 HotA 1.8）
     BYTE* arrayBase = reinterpret_cast<BYTE*>(arrayAddr);
 
+    // ─── 准备给彩色字符串用的内存池 ────────────────────
+    // 每个生物名最多 200 字节（颜色码+Lv.X+原名+终止符）
+    // 200 个槽位预留 200 * 256 = 50KB，足够
+    constexpr size_t POOL_SIZE = 256 * 200;
+    static char* g_namePool = nullptr;
+    if (!g_namePool) {
+        g_namePool = new char[POOL_SIZE];
+        memset(g_namePool, 0, POOL_SIZE);
+    }
+    char* poolPtr = g_namePool;
+    char* poolEnd = g_namePool + POOL_SIZE;
+
+    // ─── 准备改写内存（解除写保护） ────────────────────
+    DWORD oldProtect = 0;
+    SIZE_T patchSize = 200 * CREATURE_RECORD_SIZE;
+    if (!VirtualProtect(arrayBase, patchSize, PAGE_READWRITE, &oldProtect)) {
+        LOG_ERROR("  VirtualProtect failed: %lu", GetLastError());
+        return;
+    }
+    LOG_INFO("  VirtualProtect OK (oldProtect=0x%X)", oldProtect);
+
     int validCount = 0;
+    int patchedCount = 0;
     int consecutiveBlanks = 0;
 
     for (int i = 0; i < 200; ++i) {
@@ -416,9 +442,37 @@ void DumpCreatureArrayDelayed()
                  level, colored, abilU8);
 
         ++validCount;
+
+        // ─── 关键：把彩色字符串塞进 pool，并改写指针 ────
+        // 注意：游戏内字符串是 GBK 编码，所以要存 GBK 版本
+        char gbkColored[128];
+        // {~Color}Lv.X 是纯 ASCII，原 nameSing 是 GBK，拼起来仍然是 GBK 兼容
+        snprintf(gbkColored, sizeof(gbkColored),
+                 "{~%s}Lv.%d %s{~}",
+                 ColorByLevel(level), level, nameSing);
+
+        size_t newLen = strlen(gbkColored) + 1;
+        if (poolPtr + newLen > poolEnd) {
+            LOG_ERROR("  pool exhausted at creature[%d]", i);
+            break;
+        }
+        memcpy(poolPtr, gbkColored, newLen);
+
+        // 把 +0x18 改写为新字符串地址
+        *reinterpret_cast<const char**>(slot + OFF_NAME_SINGULAR) = poolPtr;
+
+        poolPtr += newLen;
+        ++patchedCount;
     }
 
-    LOG_INFO("─── 共 %d 个有效生物 ───", validCount);
+    // 恢复内存保护
+    DWORD dummyProtect;
+    VirtualProtect(arrayBase, patchSize, oldProtect, &dummyProtect);
+
+    LOG_INFO("─── 共 %d 个有效生物，patched %d 个 ───",
+             validCount, patchedCount);
+    LOG_INFO("名字字符串池已用: %d / %d 字节",
+             (int)(poolPtr - g_namePool), (int)POOL_SIZE);
 }
 
 }  // namespace mymod::hooks
