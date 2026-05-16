@@ -13,6 +13,9 @@ struct Config {
     // [Movement]
     bool EnableMovementMod   = false;
 
+    // [CreatureColor]
+    bool EnableCreatureColor = true;     // 阶段 1：dump 到 log
+
     // [Logging]
     int  LogLevel = 2;     // 0..3
     char LogFile[260] = "MyMod.log";

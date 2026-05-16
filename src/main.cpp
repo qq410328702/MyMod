@@ -86,6 +86,7 @@ void Initialize(HMODULE self)
     Install_StartupMessage();
     Install_MessageBoxIATHook();
     Install_MovementHook();
+    Install_CreatureColor();
 
     LOG_INFO("All hooks processed");
 }

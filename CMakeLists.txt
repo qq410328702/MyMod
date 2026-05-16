@@ -47,6 +47,7 @@ set(MYMOD_SOURCES
     src/hooks/hook_msgbox.cpp
     src/hooks/hook_iat.cpp
     src/hooks/hook_logic.cpp
+    src/hooks/hook_creature_color.cpp
 )
 
 # ─── DLL 目标 ─────────────────────────────────────────────

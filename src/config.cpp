@@ -18,6 +18,9 @@ void Load(const char* ini_path)
     g_cfg.EnableMovementMod =
         GetPrivateProfileIntA("Movement", "EnableMovementMod", 0, ini_path) != 0;
 
+    g_cfg.EnableCreatureColor =
+        GetPrivateProfileIntA("CreatureColor", "EnableCreatureColor", 1, ini_path) != 0;
+
     g_cfg.LogLevel =
         GetPrivateProfileIntA("Logging", "LogLevel", 2, ini_path);
 

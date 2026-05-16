@@ -33,3 +33,13 @@ patcher_x86 dump.txt
 Thumbs.db
 .DS_Store
 desktop.ini
+
+# ─── 临时调试脚本 ─────────────────────────────────
+_*.bat
+_*.ps1
+
+# ─── IDA 输出（每次运行都会重新生成）──────────────
+ida_log.txt
+ida_output.txt
+ida_funcs.txt
+ida_subfuncs.txt
