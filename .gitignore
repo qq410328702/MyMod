@@ -1,0 +1,35 @@
+# ─── CMake / VS build outputs ─────────────────────
+build/
+out/
+x86/
+x64/
+Debug/
+Release/
+
+# ─── VS 缓存（保留我们自己写的 launch.vs.json）────
+.vs/*
+!.vs/launch.vs.json
+
+# ─── 编译中间产物 ─────────────────────────────────
+*.aps
+*.suo
+*.pdb
+*.idb
+*.ilk
+*.exp
+*.lib
+*.user
+
+# ─── 其他 IDE ─────────────────────────────────────
+.vscode/
+.idea/
+
+# ─── 游戏运行时产生的 log/dump（不属于源码）──────
+MyMod.log
+patcher_x86 log.txt
+patcher_x86 dump.txt
+
+# ─── 操作系统垃圾 ─────────────────────────────────
+Thumbs.db
+.DS_Store
+desktop.ini

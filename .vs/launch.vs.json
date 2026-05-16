@@ -1,0 +1,37 @@
+{
+  // ════════════════════════════════════════════════════════════════
+  //  VS 2022 "打开文件夹 / CMake" 模式下的 F5 调试配置
+  //  对应：选择 "MyMod_launcher.exe" 作为启动项时
+  // ════════════════════════════════════════════════════════════════
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "MyMod_launcher.exe (..\\MyMod_launcher.exe)",
+      "name": "MyMod_launcher (game dir)",
+      // 启动游戏目录里部署好的 launcher，而不是 build 目录里的
+      "program": "${workspaceRoot}\\..\\MyMod_launcher.exe",
+      "currentDir": "${workspaceRoot}\\..",
+      "args": []
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "MyMod_launcher.exe",
+      "name": "MyMod_launcher (build dir, fallback)",
+      // 备选：直接跑 build 目录里的 launcher
+      "program": "${cmake.launchTargetPath}",
+      "currentDir": "${workspaceRoot}\\..",
+      "args": []
+    },
+    {
+      "type": "default",
+      "name": "Attach to h3hota.exe",
+      // 给已经在跑的游戏附加调试器
+      "program": "h3hota.exe",
+      "processName": "h3hota.exe"
+    }
+  ]
+}
